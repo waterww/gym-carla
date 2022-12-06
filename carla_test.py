@@ -40,7 +40,7 @@ if __name__ == "__main__":
     myport = 2222
     myepisodes = 5000
     separate_client_process = False
-    with CarlaServer(myport, offscreen=False) as server:
+    with CarlaServer(myport) as server:
         if separate_client_process:
             # New client connection and test_carla method are executed in a separate process
             #server.run_client(test_carla)
