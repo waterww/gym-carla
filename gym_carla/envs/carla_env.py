@@ -90,6 +90,9 @@ class CarlaEnv(gym.Env):
     self.world = client.load_world(params['town'])
     print('Carla server connected!')
 
+    # set client
+    self.client = client
+
     # Set weather
     self.world.set_weather(carla.WeatherParameters.ClearNoon)
 
@@ -139,7 +142,7 @@ class CarlaEnv(gym.Env):
     self.total_step = 0
     
     # Initialize the renderer
-    self._init_renderer()
+    # self._init_renderer()
 
     # Get pixel grid points
     if self.pixor:
@@ -222,6 +225,7 @@ class CarlaEnv(gym.Env):
         self.collision_hist.pop(0)
     self.collision_hist = []
 
+    '''
     # Add lidar sensor
     self.lidar_sensor = self.world.spawn_actor(self.lidar_bp, self.lidar_trans, attach_to=self.ego)
     self.lidar_sensor.listen(lambda data: get_lidar_data(data))
@@ -237,6 +241,7 @@ class CarlaEnv(gym.Env):
       array = array[:, :, :3]
       array = array[:, :, ::-1]
       self.camera_img = array
+    '''
 
     # Update timesteps
     self.time_step=0
@@ -247,12 +252,16 @@ class CarlaEnv(gym.Env):
     self.world.apply_settings(self.settings)
 
     self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
+    # waypoints is returned from route planner, represents the target lane line
     self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
 
     # Set ego information for render
-    self.birdeye_render.set_hero(self.ego, self.ego.id)
+    # self.birdeye_render.set_hero(self.ego, self.ego.id)
 
     return self._get_obs()
+  
+  def get_client(self):
+    return self.client
   
   def step(self, action):
     # Calculate acceleration and steering
@@ -289,16 +298,17 @@ class CarlaEnv(gym.Env):
 
     # route planner
     self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-
-    # state information
-    info = {
-      'waypoints': self.waypoints,
-      'vehicle_front': self.vehicle_front
-    }
     
     # Update timesteps
     self.time_step += 1
     self.total_step += 1
+
+    # state information
+    info = {
+      'waypoints': self.waypoints,
+      'vehicle_front': self.vehicle_front,
+      'time_step': self.time_step
+    }
 
     return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
 
@@ -456,11 +466,13 @@ class CarlaEnv(gym.Env):
 
   def _get_obs(self):
     """Get the observations."""
+    '''
     ## Birdeye rendering
     self.birdeye_render.vehicle_polygons = self.vehicle_polygons
     self.birdeye_render.walker_polygons = self.walker_polygons
     self.birdeye_render.waypoints = self.waypoints
 
+    
     # birdeye view with roadmap and actors
     birdeye_render_types = ['roadmap', 'actors']
     if self.display_route:
@@ -469,7 +481,9 @@ class CarlaEnv(gym.Env):
     birdeye = pygame.surfarray.array3d(self.display)
     birdeye = birdeye[0:self.display_size, :, :]
     birdeye = display_to_rgb(birdeye, self.obs_size)
+    '''
 
+    '''
     # Roadmap
     if self.pixor:
       roadmap_render_types = ['roadmap']
@@ -484,11 +498,15 @@ class CarlaEnv(gym.Env):
         for j in range(self.obs_size):
           if abs(birdeye[i, j, 0] - 255)<20 and abs(birdeye[i, j, 1] - 0)<20 and abs(birdeye[i, j, 0] - 255)<20:
             roadmap[i, j, :] = birdeye[i, j, :]
+    '''
 
+    '''
     # Display birdeye image
     birdeye_surface = rgb_to_display_surface(birdeye, self.display_size)
     self.display.blit(birdeye_surface, (0, 0))
+    '''
 
+    '''
     ## Lidar image generation
     point_cloud = []
     # Get point cloud data
@@ -504,6 +522,9 @@ class CarlaEnv(gym.Env):
     lidar, _ = np.histogramdd(point_cloud, bins=(x_bins, y_bins, z_bins))
     lidar[:,:,0] = np.array(lidar[:,:,0]>0, dtype=np.uint8)
     lidar[:,:,1] = np.array(lidar[:,:,1]>0, dtype=np.uint8)
+    '''
+
+    '''
     # Add the waypoints to lidar image
     if self.display_route:
       wayptimg = (birdeye[:,:,0] <= 10) * (birdeye[:,:,1] <= 10) * (birdeye[:,:,2] >= 240)
@@ -511,13 +532,16 @@ class CarlaEnv(gym.Env):
       wayptimg = birdeye[:,:,0] < 0  # Equal to a zero matrix
     wayptimg = np.expand_dims(wayptimg, axis=2)
     wayptimg = np.fliplr(np.rot90(wayptimg, 3))
-
+    '''
+    '''
     # Get the final lidar image
-    lidar = np.concatenate((lidar, wayptimg), axis=2)
+    # lidar = np.concatenate((lidar, wayptimg), axis=2)
     lidar = np.flip(lidar, axis=1)
     lidar = np.rot90(lidar, 1)
     lidar = lidar * 255
+    '''
 
+    '''
     # Display lidar image
     lidar_surface = rgb_to_display_surface(lidar, self.display_size)
     self.display.blit(lidar_surface, (self.display_size, 0))
@@ -529,6 +553,9 @@ class CarlaEnv(gym.Env):
 
     # Display on pygame
     pygame.display.flip()
+    '''
+    # Get camera images
+    # camera = resize(self.camera_img, (self.obs_size, self.obs_size)) * 255
 
     # State observation
     ego_trans = self.ego.get_transform()
@@ -542,6 +569,7 @@ class CarlaEnv(gym.Env):
     speed = np.sqrt(v.x**2 + v.y**2)
     state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
 
+    '''
     if self.pixor:
       ## Vehicle classification and regression maps (requires further normalization)
       vh_clas = np.zeros((self.pixor_size, self.pixor_size))
@@ -577,14 +605,16 @@ class CarlaEnv(gym.Env):
 
       # Pixor state, [x, y, cos(yaw), sin(yaw), speed]
       pixor_state = [ego_x, ego_y, np.cos(ego_yaw), np.sin(ego_yaw), speed]
+    '''
 
     obs = {
-      'camera':camera.astype(np.uint8),
-      'lidar':lidar.astype(np.uint8),
-      'birdeye':birdeye.astype(np.uint8),
+      #'camera':camera.astype(np.uint8),
+      #'lidar':lidar.astype(np.uint8),
+      #'birdeye':birdeye.astype(np.uint8),
       'state': state,
     }
 
+    '''
     if self.pixor:
       obs.update({
         'roadmap':roadmap.astype(np.uint8),
@@ -592,43 +622,52 @@ class CarlaEnv(gym.Env):
         'vh_regr':vh_regr.astype(np.float32),
         'pixor_state': pixor_state,
       })
+    '''
 
     return obs
 
   def _get_reward(self):
     """Calculate the step reward."""
-    # reward for speed tracking
+    # reward for speed tracking: the difference between desired_speed and real_speed
     v = self.ego.get_velocity()
     speed = np.sqrt(v.x**2 + v.y**2)
     r_speed = -abs(speed - self.desired_speed)
     
-    # reward for collision
+    # reward for collision: if collision -1, if not collision 0
     r_collision = 0
     if len(self.collision_hist) > 0:
       r_collision = -1
 
-    # reward for steering:
+    # reward for steering: what is steer? the steering angle action, -steer**2, steer=-0.2 0 0.2, r_steer= -0.04 or 0
     r_steer = -self.ego.get_control().steer**2
 
-    # reward for out of lane
+    # reward for out of lane: calculate the distance between the ego car and target waypoints, if too far r_out=-1; if not r_out=0
     ego_x, ego_y = get_pos(self.ego)
     dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
     r_out = 0
     if abs(dis) > self.out_lane_thres:
       r_out = -1
 
-    # longitudinal speed
+    # longitudinal speed: the speed along the road
     lspeed = np.array([v.x, v.y])
     lspeed_lon = np.dot(lspeed, w)
 
-    # cost for too fast
+    # cost for too fast: if longitudinal speed exceeds the desired speed, r_fast=-1; if not, r_fast=0
     r_fast = 0
     if lspeed_lon > self.desired_speed:
       r_fast = -1
 
-    # cost for lateral acceleration
+    # cost for lateral acceleration?
     r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
 
+    # reward
+    # collision = -200 or 0
+    # lspeed_lon = lspeed_lon
+    # r_fast = -10 or 0
+    # r_out = -1 or 0
+    # r_steer = -0.2 or 0
+    # r_lat = <0 or 0
+    # -0.1
     r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
 
     return r
@@ -643,8 +682,8 @@ class CarlaEnv(gym.Env):
       return True
 
     # If reach maximum timestep
-    if self.time_step>self.max_time_episode:
-      return True
+    #if self.time_step>self.max_time_episode:
+      #return True
 
     # If at destination
     if self.dests is not None: # If at destination
