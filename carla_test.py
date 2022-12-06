@@ -2,7 +2,7 @@ import os
 import time
 
 from carla_server import CarlaServer
-from test2 import main_test 
+from test7 import main_test 
 
 # revise
 # CarlaServer.CARLA_ROOT = os.path.join(os.environ['VSC_DATA'], 'lib', 'carla')
@@ -38,14 +38,15 @@ def test_carla(client):
 if __name__ == "__main__":
     # Launch server and connect client
     myport = 2222
+    myepisodes = 5000
     separate_client_process = False
     with CarlaServer(myport, offscreen=False) as server:
         if separate_client_process:
             # New client connection and test_carla method are executed in a separate process
             #server.run_client(test_carla)
-            server.run_client(main_test(port=myport))
+            server.run_client(main_test(port=myport, episodes = myepisodes))
         else:
             # New client connection and test_carla method are executed in current process
             client = server.connect_client()
             #test_carla(client)
-            main_test(port=myport)
+            main_test(port=myport, episodes = myepisodes)

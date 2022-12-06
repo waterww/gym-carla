@@ -163,35 +163,31 @@ def play_game(env, TrainNet, TargetNet, epsilon, copy_step, n):
 
 
 def make_video2(env, TrainNet, n):
-    '''test the final model, record a video and record lateral distance and steering every step'''
+    '''record a video with carla recorder'''
     rewards = 0
     steps = 0
     done = False
     observation = env.reset()
 
-    log_dir = 'logs/dqn/test_model'
-    summary_writer = tf.summary.create_file_writer(log_dir)
-
     client = env.get_client()
-    client.start_recorder("/home/miao/gym-carla/video/test_%d.log" % n)
+    client.start_recorder("/home/miao/gym-carla/video/train_%d.log" % n)
+    # client.start_recorder("/data/leuven/350/vsc35061/lib2/gym-carla/video/train_%d.log" % n)
 
     while not done:
         action = TrainNet.get_action(observation['state'], 0)
-        observation, reward, done, _ = env.step(action)
+        observation, reward, done, info = env.step(action)
         steps += 1
         rewards += reward
 
-        if done:
-            env.reset()
-
-        with summary_writer.as_default():
-            tf.summary.scalar('lateral distance', observation['state'][0], step=steps)
-            tf.summary.scalar('heading error', observation['state'][1], step=steps)
+        # reach the max time steps per episode, stop training
+        if info['time_step'] > MAX_TIME_EPISODE:
+            break
     
     client.stop_recorder()
     print("Episode: {}, steps: {} total rewards:{} ".format(n, steps, rewards))
 
 def make_video1(env, TrainNet, n):
+    '''record a video with camera'''
     rewards = 0
     steps = 0
     done = False
@@ -212,7 +208,8 @@ def make_video1(env, TrainNet, n):
     out.release()
 
         
-def test_model(env, TrainNet):
+def test_model(env, TrainNet, N):
+    '''test the trained model, record a video and observation data'''
     rewards = 0
     steps = 0
     done = False
@@ -221,16 +218,26 @@ def test_model(env, TrainNet):
     log_dir = 'logs/dqn/test_model'
     summary_writer = tf.summary.create_file_writer(log_dir)
 
+    client = env.get_client()
+    client.start_recorder("/home/miao/gym-carla/video/test_%d.log" % N)
+    # client.start_recorder("/data/leuven/350/vsc35061/lib2/gym-carla/video/test_%d.log" % N)
+
     while not done:
         action = TrainNet.get_action(observation['state'], 0)
-        observation, reward, done, _ = env.step(action)
+        observation, reward, done, info = env.step(action)
         steps += 1
         rewards += reward
 
         with summary_writer.as_default():
             tf.summary.scalar('lateral distance', observation['state'][0], step=steps)
             tf.summary.scalar('heading error', observation['state'][1], step=steps)
+
+        # reach the max time steps per episode, stop training
+        if info['time_step'] > MAX_TIME_EPISODE:
+            break
     
+    client.stop_recorder()
+
     print("Test model ends, steps: {} total rewards:{} ".format(steps, rewards))
                 
 
@@ -319,21 +326,19 @@ def main_test(port=2000, episodes=50000):
             tf.summary.histogram('actions', tf.convert_to_tensor(selected_actions,dtype=tf.int64), step=n)
             '''
         
-        '''
-        # make a video to test the model
         if n % 1000 == 0:
             make_video2(env, TrainNet, n)
-        '''
+        
 
-        #if n % 100 == 0:
-        print("episode:", n, "episode reward:", total_reward, "eps:", epsilon, "avg reward (last 100):", avg_rewards,
+        if n % 100 == 0:
+            print("episode:", n, "episode reward:", total_reward, "eps:", epsilon, "avg reward (last 100):", avg_rewards,
                   "episode loss: ", loss)
     
     print("End: avg reward for last 100 episodes:", avg_rewards)
 
-    #TrainNet.model.save('./final_model')
+    TrainNet.model.save('./final_model')
 
-    #make_video2(env, TrainNet, N)
+    test_model(env, TrainNet, N)
     
     env.close()
 
