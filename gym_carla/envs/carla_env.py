@@ -638,15 +638,15 @@ class CarlaEnv(gym.Env):
     if len(self.collision_hist) > 0:
       r_collision = -1
 
-    # reward for steering: what is steer? the steering angle action, -steer**2, steer=-0.2 0 0.2, r_steer= -0.04 or 0
+    # reward for steering: -steer**2, steer=-0.2 0 0.2, r_steer= -0.04 or 0
     r_steer = -self.ego.get_control().steer**2
 
     # reward for out of lane: calculate the distance between the ego car and target waypoints, if too far r_out=-1; if not r_out=0
     ego_x, ego_y = get_pos(self.ego)
     dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
-    r_out = 0
-    if abs(dis) > self.out_lane_thres:
-      r_out = -1
+    # r_out = 0
+    # if abs(dis) > self.out_lane_thres:
+      # r_out = -1
 
     # longitudinal speed: the speed along the road
     lspeed = np.array([v.x, v.y])
@@ -657,18 +657,23 @@ class CarlaEnv(gym.Env):
     if lspeed_lon > self.desired_speed:
       r_fast = -1
 
-    # cost for lateral acceleration?
+    # cost for lateral acceleration
     r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
 
+    # cost for big lateral distance
+    r_off = -abs(abs(dis) - self.out_lane_thres) / self.out_lane_thres
+
     # reward
-    # collision = -200 or 0
-    # lspeed_lon = lspeed_lon
-    # r_fast = -10 or 0
-    # r_out = -1 or 0
-    # r_steer = -0.2 or 0
-    # r_lat = <0 or 0
+    # reward_collision = -200 or 0
+    # reward_logitudinal_speed = lspeed_lon
+    # reward_too_fast = -10 or 0
+    # reward_out_of_lane = -1 or 0
+    # reward_steer_angle = -0.2 or 0
+    # reward_lateral_acceleration = <0 or 0 r_steer and r_lat is used to make the car keep it same angle with the road
     # -0.1
-    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
+    # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
+
+    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 5*r_off + 5*r_steer + 0.2*r_lat - 0.1
 
     return r
 
@@ -686,10 +691,12 @@ class CarlaEnv(gym.Env):
       #return True
 
     # If at destination
+    '''
     if self.dests is not None: # If at destination
       for dest in self.dests:
         if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
           return True
+    '''
 
     # If out of lane
     dis, _ = get_lane_dis(self.waypoints, ego_x, ego_y)

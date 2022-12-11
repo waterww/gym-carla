@@ -2,11 +2,16 @@ import os
 import time
 
 from carla_server import CarlaServer
-from test7 import main_test 
+from carla_train import main_test 
 
-# revise
-# CarlaServer.CARLA_ROOT = os.path.join(os.environ['VSC_DATA'], 'lib', 'carla')
-CarlaServer.CARLA_ROOT = "/home/miao/CARLA_0.9.6"
+workpath = os.getcwd()
+HPC = True
+if "miao" in workpath:
+    CarlaServer.CARLA_ROOT = "/home/miao/CARLA_0.9.6"
+    HPC = False # if not HPC, offscreen = False
+else:
+    CarlaServer.CARLA_ROOT = os.path.join(os.environ['VSC_DATA'], 'lib', 'carla')
+
 CarlaServer.CARLA_VERSION = (0, 9, 6)
 
 
@@ -39,14 +44,14 @@ if __name__ == "__main__":
     # Launch server and connect client
     myport = 2222
     myepisodes = 5000
+    print("carla port: %d" % myport)
     separate_client_process = False
-    with CarlaServer(myport) as server:
+
+    with CarlaServer(myport, offscreen=HPC) as server:
         if separate_client_process:
             # New client connection and test_carla method are executed in a separate process
-            #server.run_client(test_carla)
-            server.run_client(main_test(port=myport, episodes = myepisodes))
+            server.run_client(main_test(port=myport, episodes=myepisodes))
         else:
             # New client connection and test_carla method are executed in current process
             client = server.connect_client()
-            #test_carla(client)
-            main_test(port=myport, episodes = myepisodes)
+            main_test(port=myport, episodes=myepisodes)

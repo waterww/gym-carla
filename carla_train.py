@@ -16,6 +16,7 @@ import cv2
 
 from gym import wrappers
 
+MAX_TIME_EPISODE = 1000
 
 # design the network model
 class MyModel(tf.keras.Model):
@@ -169,22 +170,30 @@ def make_video2(env, TrainNet, n):
     done = False
     observation = env.reset()
 
+    # path to save video log
+    video_dir = os.getcwd() + "/video"
+    if not os.path.exists(video_dir):
+        os.makedirs(video_dir)
+    
     client = env.get_client()
-    client.start_recorder("/home/miao/gym-carla/video/train_%d.log" % n)
-    # client.start_recorder("/data/leuven/350/vsc35061/lib2/gym-carla/video/train_%d.log" % n)
-
+    client.start_recorder(video_dir+"/train_%d.log" % n)
+    
     while not done:
         action = TrainNet.get_action(observation['state'], 0)
         observation, reward, done, info = env.step(action)
         steps += 1
         rewards += reward
 
+        # if done, delete the vehicle
+        if done:
+            env.reset()
+
         # reach the max time steps per episode, stop training
         if info['time_step'] > MAX_TIME_EPISODE:
             break
     
     client.stop_recorder()
-    print("Episode: {}, steps: {} total rewards:{} ".format(n, steps, rewards))
+    print("Make a video, episode: {}, steps: {} total rewards:{} ".format(n, steps, rewards))
 
 def make_video1(env, TrainNet, n):
     '''record a video with camera'''
@@ -214,29 +223,47 @@ def test_model(env, TrainNet, N):
     steps = 0
     done = False
     observation = env.reset()
-    
-    log_dir = 'logs/dqn/test_model'
+
+    action_list = list()
+
+    # path to save test data
+    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")    
+    log_dir = 'logs/test_model/' + current_time
     summary_writer = tf.summary.create_file_writer(log_dir)
 
+    # path to save video log
+    video_dir = os.getcwd() + "/video"
+    if not os.path.exists(video_dir):
+        os.makedirs(video_dir)
+    
     client = env.get_client()
-    client.start_recorder("/home/miao/gym-carla/video/test_%d.log" % N)
-    # client.start_recorder("/data/leuven/350/vsc35061/lib2/gym-carla/video/test_%d.log" % N)
+    client.start_recorder(video_dir+"/test_%d.log" % N)
 
     while not done:
-        action = TrainNet.get_action(observation['state'], 0)
+        action = TrainNet.get_action(observation['state'], 0) # action is one step ahead
         observation, reward, done, info = env.step(action)
         steps += 1
         rewards += reward
 
+        action_list.append(action)
+
         with summary_writer.as_default():
             tf.summary.scalar('lateral distance', observation['state'][0], step=steps)
             tf.summary.scalar('heading error', observation['state'][1], step=steps)
+            tf.summary.scalar('ego speed', observation['state'][2], step=steps)
+            tf.summary.scalar('reward', reward, step=steps)
+
+        # if done, delete the vehicle
+        if done:
+            env.reset()
 
         # reach the max time steps per episode, stop training
         if info['time_step'] > MAX_TIME_EPISODE:
             break
     
     client.stop_recorder()
+
+    np.savez(f'action_list_test_{N}', actions = action_list)
 
     print("Test model ends, steps: {} total rewards:{} ".format(steps, rewards))
                 
@@ -262,7 +289,7 @@ def main_test(port=2000, episodes=50000):
         'town': 'Town04',  # which town to simulate
         # mode of the task, [random, roundabout (only for Town03)]
         'task_mode': 'random',
-        'max_time_episode': 1000,  # maximum timesteps per episode
+        'max_time_episode': MAX_TIME_EPISODE,  # maximum timesteps per episode
         'max_waypt': 12,  # maximum number of waypoints
         'obs_range': 32,  # observation range (meter)
         'lidar_bin': 0.125,  # bin size of lidar sensor (meter)
@@ -274,9 +301,6 @@ def main_test(port=2000, episodes=50000):
         'pixor_size': 64,  # size of the pixor labels
         'pixor': False,  # whether to output PIXOR observation
     }
-
-    global MAX_TIME_EPISODE
-    MAX_TIME_EPISODE = params['max_time_episode']
 
     # Set gym-carla environment
     env = gym.make('carla-v0', params=params).unwrapped
@@ -336,7 +360,9 @@ def main_test(port=2000, episodes=50000):
     
     print("End: avg reward for last 100 episodes:", avg_rewards)
 
-    TrainNet.model.save('./final_model')
+    # save trained model
+    model_dir = 'final_model/' + current_time
+    TrainNet.model.save(model_dir)
 
     test_model(env, TrainNet, N)
     
