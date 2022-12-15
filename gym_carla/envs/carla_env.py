@@ -661,7 +661,7 @@ class CarlaEnv(gym.Env):
     r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
 
     # cost for big lateral distance
-    r_off = -abs(abs(dis) - self.out_lane_thres) / self.out_lane_thres
+    r_off = -abs(dis) / self.out_lane_thres
 
     # reward
     # reward_collision = -200 or 0
