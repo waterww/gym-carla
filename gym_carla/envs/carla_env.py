@@ -662,6 +662,9 @@ class CarlaEnv(gym.Env):
 
     # cost for big lateral distance
     r_off = -abs(dis) / self.out_lane_thres
+    
+    # cost for speed
+    r_speed = -abs(lspeed_lon - self.desired_speed) / self.desired_speed
 
     # reward
     # reward_collision = -200 or 0
@@ -673,7 +676,7 @@ class CarlaEnv(gym.Env):
     # -0.1
     # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
 
-    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 5*r_off + 5*r_steer + 0.2*r_lat - 0.1
+    r = 200*r_collision + 10*r_speed + 5*r_off + 5*r_steer + 0.2*r_lat - 0.1
 
     return r
 
