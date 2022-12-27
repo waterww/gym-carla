@@ -26,7 +26,7 @@ def main(episode):
     '''
 
     plt.title("ep%d" % episode)
-    plt.plot(steps,actions)
+    plt.plot(steps,actions,'.')
     plt.xlabel('step')
     plt.ylabel('actions')
     plt.show()
@@ -42,5 +42,5 @@ def main(episode):
     '''
 
 if __name__ == '__main__':
-    main(-3)
+    main(-1502)
     

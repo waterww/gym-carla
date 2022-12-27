@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "/home/miao/anaconda3/envs/carla_env/bin/python3.6",
+    "python.pythonPath": "/home/miao/anaconda3/envs/carla_env/bin/python",
     "ros.distro": "kinetic"
 }

@@ -45,6 +45,7 @@ class DQN:
         return self.model(np.atleast_2d(inputs.astype('float32')))
 
     def train(self, TargetNet):
+        # if the number of experiences smaller than min_experiences, loss=0
         if len(self.experience['s']) < self.min_experiences:
             return 0
         # randomly select batch size data

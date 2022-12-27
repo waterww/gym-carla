@@ -644,9 +644,9 @@ class CarlaEnv(gym.Env):
     # reward for out of lane: calculate the distance between the ego car and target waypoints, if too far r_out=-1; if not r_out=0
     ego_x, ego_y = get_pos(self.ego)
     dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
-    # r_out = 0
-    # if abs(dis) > self.out_lane_thres:
-      # r_out = -1
+    r_out = 0
+    if abs(dis) > self.out_lane_thres:
+      r_out = -1
 
     # longitudinal speed: the speed along the road
     lspeed = np.array([v.x, v.y])
@@ -661,7 +661,10 @@ class CarlaEnv(gym.Env):
     r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
 
     # cost for big lateral distance
-    r_off = -abs(dis) / self.out_lane_thres
+    if abs(dis) <= 0.5:
+      r_off = 0
+    else:
+      r_off = -abs(dis) / self.out_lane_thres
     
     # cost for speed
     r_speed = -abs(lspeed_lon - self.desired_speed) / self.desired_speed
@@ -674,9 +677,9 @@ class CarlaEnv(gym.Env):
     # reward_steer_angle = -0.2 or 0
     # reward_lateral_acceleration = <0 or 0 r_steer and r_lat is used to make the car keep it same angle with the road
     # -0.1
-    # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
+    # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 50*r_out + r_steer*5 + 0.2*r_lat - 0.1
 
-    r = 200*r_collision + 10*r_speed + 5*r_off + 5*r_steer + 0.2*r_lat - 0.1
+    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 10*r_off + 5*r_steer + 0.2*r_lat - 0.1
 
     return r
 

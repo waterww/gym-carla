@@ -248,6 +248,7 @@ def test_model(env, TrainNet, N):
         action_list.append(action)
 
         with summary_writer.as_default():
+            tf.summary.scalar('action', action, step=steps)
             tf.summary.scalar('lateral distance', observation['state'][0], step=steps)
             tf.summary.scalar('heading error', observation['state'][1], step=steps)
             tf.summary.scalar('ego speed', observation['state'][2], step=steps)
@@ -351,7 +352,7 @@ def main_test(port=2000, episodes=50000):
             '''
         
         if n % 1000 == 0:
-            make_video2(env, TrainNet, n)
+            test_model(env, TrainNet, n)
         
 
         if n % 100 == 0:

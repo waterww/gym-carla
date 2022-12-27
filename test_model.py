@@ -9,7 +9,7 @@ import datetime
 from carla_train import test_model,DQN
 
 
-def main(port=2000, file_dir='/home/miao/hpc_output_files/final_model'):
+def main(port=2000, file_dir='/home/miao/hpc_output_files/final_model_1221/20221220-201435'):
     # parameters for the gym_carla environment
     params = {
         'number_of_vehicles': 0,
@@ -32,7 +32,7 @@ def main(port=2000, file_dir='/home/miao/hpc_output_files/final_model'):
         'obs_range': 32,  # observation range (meter)
         'lidar_bin': 0.125,  # bin size of lidar sensor (meter)
         'd_behind': 12,  # distance behind the ego vehicle (meter)
-        'out_lane_thres': 1.5,  # threshold for out of lane
+        'out_lane_thres': 2.0,  # threshold for out of lane
         'desired_speed': 8,  # desired speed (m/s)
         'max_ego_spawn_times': 200,  # maximum times to spawn ego vehicle
         'display_route': True,  # whether to render the desired route
