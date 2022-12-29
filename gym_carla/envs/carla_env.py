@@ -679,7 +679,7 @@ class CarlaEnv(gym.Env):
     # -0.1
     # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 50*r_out + r_steer*5 + 0.2*r_lat - 0.1
 
-    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 10*r_off + 5*r_steer + 0.2*r_lat - 0.1
+    r = 200*r_collision + 1*lspeed_lon + 5*r_fast + 10*r_off + 5*r_steer + 0.2*r_lat - 0.1
 
     return r
 

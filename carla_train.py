@@ -278,7 +278,7 @@ def main_test(port=2000, episodes=50000):
         'max_past_step': 1,  # the number of past steps to draw
         'dt': 0.1,  # time interval between two frames
         'discrete': True,  # whether to use discrete control space
-        'discrete_acc': [-3.0, 0.0, 3.0],  # discrete value of accelerations
+        'discrete_acc': [-2.0, 0.0, 2.0],  # discrete value of accelerations
         # discrete value of steering angles
         'discrete_steer': [-0.2, 0.0, 0.2],
         'continuous_accel_range': [-3.0, 3.0],  # continuous acceleration range
@@ -351,7 +351,7 @@ def main_test(port=2000, episodes=50000):
             tf.summary.histogram('actions', tf.convert_to_tensor(selected_actions,dtype=tf.int64), step=n)
             '''
         
-        if n % 1000 == 0:
+        if n % 1000 == 0 and n != 0:
             test_model(env, TrainNet, n)
         
 

@@ -42,8 +42,8 @@ def test_carla(client):
 
 if __name__ == "__main__":
     # Launch server and connect client
-    myport = 2222
-    myepisodes = 5000
+    myport = 2000
+    myepisodes = 1000
     print("carla port: %d" % myport)
     separate_client_process = False
 
