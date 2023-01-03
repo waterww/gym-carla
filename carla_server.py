@@ -11,10 +11,11 @@ class CarlaServer:
     CARLA_ROOT = os.environ.get('CARLA_ROOT')
     CARLA_VERSION = (0, 9, 13)
 
-    def __init__(self, port=2000, offscreen=True, launch_delay=10, launch_retries=3,
+    def __init__(self, port=2000, offscreen=True, hpc=True, launch_delay=10, launch_retries=3,
                  connect_timeout=10, connect_retries=3):
         self._port = port
         self._offscreen = offscreen
+        self._hpc = hpc
         self._launch_delay = launch_delay
         self._launch_retries = launch_retries
         self._connect_timeout = connect_timeout
@@ -33,9 +34,11 @@ class CarlaServer:
 
         # Setup arguments and environment variables
         args = [f'-carla-port={self._port}']
-        # revise for my computer
-        args.append('-opengl -qaulity-level=Low')
+        args.append('-quality-level=Low')
         
+        if not self._hpc:
+            args.append('-opengl')
+                   
         env = os.environ.copy()
         if self._offscreen:
             # Offscreen rendering (see https://carla.readthedocs.io/en/latest/adv_rendering_options/#off-screen-mode)
